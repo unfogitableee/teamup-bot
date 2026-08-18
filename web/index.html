@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f17">
+  <title>Тимап</title>
+  <script src="https://telegram.org/js/telegram-web-app.js?63"></script>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div id="accessGate" class="gate hidden">
+    <div class="gate-card">
+      <img src="/static/logo.png" class="gate-logo" alt="">
+      <h2>Тимап</h2>
+      <p>Чтобы пользоваться Тимапом, подпишись на наш канал. Там автоматически появляются новые проекты и важные обновления сервиса.</p>
+      <button id="subscribeBtn" class="primary wide">📣 Подписаться на канал</button>
+      <button id="checkSubBtn" class="secondary wide">✅ Я подписался — проверить</button>
+      <div id="gateStatus" class="muted center"></div>
+    </div>
+  </div>
+
+  <div class="app">
+    <header>
+      <div class="brand-row">
+        <img src="/static/logo.png" class="header-logo" alt="">
+        <div>
+          <div class="eyebrow">ТИМАП</div>
+          <h1 id="screenTitle">Проекты</h1>
+        </div>
+      </div>
+      <button id="createBtn" class="create" aria-label="Создать проект">＋</button>
+    </header>
+
+    <main>
+      <section id="discoverScreen">
+        <div id="channelBanner" class="channel-banner hidden">
+          <div class="channel-banner-icon">📣</div>
+          <div class="grow">
+            <b>Новые проекты в Telegram</b>
+            <div class="muted">Подпишись на канал Тимапа, если хочешь видеть новые проекты первым.</div>
+            <div class="channel-banner-actions">
+              <button id="channelSubscribeBtn" class="primary">Подписаться</button>
+              <button id="channelDismissBtn" class="link-button">Не сейчас</button>
+            </div>
+          </div>
+          <button id="channelBannerClose" class="banner-close" aria-label="Закрыть">×</button>
+        </div>
+
+        <div id="projectScope" class="scope-tabs three">
+          <button data-scope="recommended" class="active">✨ Для тебя</button>
+          <button data-scope="all">Все</button>
+          <button data-scope="mine">Мои</button>
+        </div>
+
+        <div id="peopleScope" class="scope-tabs hidden">
+          <button data-people-scope="recommended" class="active">✨ Для тебя</button>
+          <button data-people-scope="all">Все люди</button>
+        </div>
+
+        <div class="mode-tabs four">
+          <button data-mode="all" class="active">Все</button>
+          <button data-mode="free">🟢 Бесплатно</button>
+          <button data-mode="paid">💼 Оплата</button>
+          <button data-mode="share">💎 Доля</button>
+        </div>
+
+        <div class="search-row">
+          <input id="stackSearch" placeholder="Поиск по стеку: React, Python...">
+          <button id="clearSearch" class="icon-btn">×</button>
+        </div>
+        <div id="quickStacks" class="chips"></div>
+        <div id="feed" class="feed"></div>
+      </section>
+
+      <section id="inboxScreen" class="hidden">
+        <div class="inbox-switch">
+          <button data-inbox="incoming" class="active">Входящие</button>
+          <button data-inbox="outgoing">Исходящие</button>
+        </div>
+        <div id="inboxContent"></div>
+      </section>
+
+      <section id="profileScreen" class="hidden">
+        <div class="profile-hero">
+          <div id="avatar" class="avatar big">🙂</div>
+          <div class="grow">
+            <div class="profile-line">
+              <strong id="profileName">Профиль</strong>
+              <span id="seekingBadge" class="availability-badge">Ищу возможности</span>
+            </div>
+            <div class="muted">Заполни стек — тебя смогут находить команды и другие специалисты.</div>
+          </div>
+        </div>
+
+        <form id="profileForm" class="form">
+          <label>Кто ты<input name="role" placeholder="Backend Developer"></label>
+          <label>Уровень
+            <select name="level">
+              <option value="">Выбери уровень</option>
+              <option>Начинающий</option><option>Junior</option><option>Junior+</option><option>Middle</option><option>Senior</option>
+            </select>
+          </label>
+          <label>Стек<input name="stack" placeholder="Python, FastAPI, PostgreSQL"></label>
+          <label>Сколько времени<input name="availability" placeholder="5–10 ч/нед"></label>
+          <label>О себе<textarea name="bio" rows="4" placeholder="Что умеешь, что ищешь, над чем хочешь работать"></textarea></label>
+          <label>Статус
+            <select name="seeking_status">
+              <option value="open">🟢 Открыт к предложениям</option>
+              <option value="busy">⚪ Пока не ищу</option>
+            </select>
+          </label>
+          <label>Что сейчас ищешь
+            <select name="goal">
+              <option value="project">🚀 Проект для себя</option>
+              <option value="people">👥 Людей в свою команду</option>
+              <option value="both">🤝 И проекты, и людей</option>
+            </select>
+          </label>
+          <div class="label-title">Форматы</div>
+          <label class="check"><input type="checkbox" name="mode_free"> 🟢 Бесплатный pet-project</label>
+          <label class="check"><input type="checkbox" name="mode_paid"> 💼 Оплачиваемая работа</label>
+          <label class="check"><input type="checkbox" name="mode_share"> 💎 Доля / revenue share</label>
+          <button class="primary wide" type="submit">Сохранить профиль</button>
+          <button id="adminBtn" class="secondary wide hidden" type="button">🛡 Открыть админку</button>
+        </form>
+      </section>
+    </main>
+
+    <nav>
+      <button data-tab="projects" class="active"><span>🚀</span>Проекты</button>
+      <button data-tab="people"><span>👥</span>Люди</button>
+      <button data-tab="inbox"><span>📨</span>Отклики</button>
+      <button data-tab="profile"><span>👤</span>Профиль</button>
+    </nav>
+  </div>
+
+  <div id="projectModal" class="modal hidden">
+    <div class="sheet">
+      <div class="sheet-head">
+        <div><div class="eyebrow">ПРОЕКТ</div><h2 id="projectFormTitle">Новый проект</h2></div>
+        <button class="icon-btn" data-close="projectModal">×</button>
+      </div>
+      <form id="projectForm" class="form">
+        <input type="hidden" name="project_id">
+        <label>Название<input name="title" required placeholder="AI Seller Assistant"></label>
+        <label>Описание<textarea name="description" rows="4" placeholder="Что строим и что уже готово"></textarea></label>
+        <label>Формат
+          <select name="mode"><option value="free">🟢 Бесплатно</option><option value="paid">💼 Оплата</option><option value="share">💎 Доля</option></select>
+        </label>
+        <label>Кого ищешь<input name="roles" placeholder="Frontend, Designer, Sales"></label>
+        <label>Стек<input name="stack" placeholder="React, Python, PostgreSQL"></label>
+        <label>Условия<input name="terms" placeholder="Без оплаты / 50 000 ₽ / 10% доля"></label>
+        <label>Занятость<input name="hours" placeholder="5–8 ч/нед"></label>
+        <button type="submit" class="primary wide" id="projectSubmitBtn">Опубликовать</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="detailModal" class="modal hidden">
+    <div class="sheet detail-sheet">
+      <div class="sheet-head">
+        <div><div class="eyebrow">КАРТОЧКА ПРОЕКТА</div><h2 id="detailTitle">Проект</h2></div>
+        <button class="icon-btn" data-close="detailModal">×</button>
+      </div>
+      <div id="detailBody"></div>
+    </div>
+  </div>
+
+  <div id="applyModal" class="modal hidden">
+    <div class="sheet compact">
+      <div class="sheet-head">
+        <div><div class="eyebrow">ОТКЛИК</div><h2 id="applyTitle">Откликнуться</h2></div>
+        <button class="icon-btn" data-close="applyModal">×</button>
+      </div>
+      <form id="applyForm" class="form">
+        <input type="hidden" name="project_id">
+        <label>Сообщение автору<textarea name="message" rows="5" placeholder="Кто ты и чем можешь помочь проекту"></textarea></label>
+        <button type="submit" class="primary wide">Отправить отклик</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="inviteModal" class="modal hidden">
+    <div class="sheet compact">
+      <div class="sheet-head">
+        <div><div class="eyebrow">ПРИГЛАШЕНИЕ</div><h2 id="inviteTitle">Пригласить в проект</h2></div>
+        <button class="icon-btn" data-close="inviteModal">×</button>
+      </div>
+      <form id="inviteForm" class="form">
+        <input type="hidden" name="recipient_id">
+        <label>Твой проект<select name="project_id" id="inviteProjectSelect"></select></label>
+        <label>Сообщение<textarea name="message" rows="4" placeholder="Почему думаешь, что вы подойдёте друг другу"></textarea></label>
+        <button type="submit" class="primary wide">Отправить приглашение</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="onboardingModal" class="modal hidden onboarding-modal">
+    <div class="sheet compact quick-onboarding registration-sheet">
+      <div class="quick-mark">⚡ 20 СЕКУНД</div>
+      <h2>Добро пожаловать в Тимап</h2>
+      <p class="muted intro">Три коротких пункта — и сразу покажем проекты и людей под тебя.</p>
+
+      <form id="quickOnboardingForm" class="form">
+        <label>1. Кто ты?
+          <input id="obRole" name="role" autocomplete="off" placeholder="Например: Backend Developer">
+        </label>
+
+        <div id="rolePresets" class="preset-grid">
+          <button type="button" data-role="Backend Developer">Backend</button>
+          <button type="button" data-role="Frontend Developer">Frontend</button>
+          <button type="button" data-role="Fullstack Developer">Fullstack</button>
+          <button type="button" data-role="UI/UX Designer">Design</button>
+          <button type="button" data-role="Mobile Developer">Mobile</button>
+          <button type="button" data-role="QA Engineer">QA</button>
+          <button type="button" data-role="DevOps Engineer">DevOps</button>
+          <button type="button" data-role="Marketing">Marketing</button>
+        </div>
+
+        <label>2. Твой стек / навыки
+          <input id="obStack" name="stack" autocomplete="off" placeholder="Python, React, Figma, Sales...">
+        </label>
+
+        <div>
+          <div class="label-title quick-label">3. Что ты ищешь?</div>
+          <div id="goalChoices" class="goal-choices">
+            <button type="button" data-goal="project">🚀<span>Проект</span></button>
+            <button type="button" data-goal="people">👥<span>Людей</span></button>
+            <button type="button" data-goal="both" class="active">🤝<span>И то и другое</span></button>
+          </div>
+        </div>
+
+        <button id="obFinish" type="submit" class="primary wide quick-submit">Начать →</button>
+      </form>
+
+      <div class="quick-footnote">Без подписки и длинной анкеты. Остальное можно заполнить позже.</div>
+    </div>
+  </div>
+
+  <div id="reportModal" class="modal hidden">
+    <div class="sheet compact">
+      <div class="sheet-head">
+        <div><div class="eyebrow">ЖАЛОБА</div><h2 id="reportTitle">Сообщить о проблеме</h2></div>
+        <button class="icon-btn" data-close="reportModal">×</button>
+      </div>
+      <form id="reportForm" class="form">
+        <input type="hidden" name="target_type">
+        <input type="hidden" name="target_id">
+        <p class="muted intro">Жалоба попадёт только администратору Тимап.</p>
+        <label>Что не так?
+          <textarea name="reason" rows="5" required minlength="3" maxlength="500" placeholder="Например: спам, обман, подозрительные условия, оскорбления…"></textarea>
+        </label>
+        <button class="danger wide" type="submit">Отправить жалобу</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="adminModal" class="modal hidden">
+    <div class="sheet detail-sheet">
+      <div class="sheet-head">
+        <div><div class="eyebrow">АДМИНКА</div><h2>Тимап</h2></div>
+        <button class="icon-btn" data-close="adminModal">×</button>
+      </div>
+      <div id="adminStats" class="admin-stats"></div>
+      <button id="cleanupDemoBtn" class="secondary wide admin-cleanup" type="button">🧹 Удалить тестовых Артёма, Леру и Мишу</button>
+      <div class="section-title">Жалобы</div>
+      <div id="adminReports" class="admin-list"></div>
+      <div class="section-title">Последние проекты</div>
+      <div id="adminProjects" class="admin-list"></div>
+      <div class="section-title">Последние пользователи</div>
+      <div id="adminUsers" class="admin-list"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

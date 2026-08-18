@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: teamup-bot
+    runtime: python
+    plan: starter
+
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+
+    disk:
+      name: teamup-data
+      mountPath: /data
+      sizeGB: 1
+
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+
+      - key: DEV_MODE
+        value: "0"
+
+      - key: DEMO_DATA
+        value: "0"
+
+      - key: REQUIRE_CHANNEL_SUBSCRIPTION
+        value: "0"
+
+      - key: REQUIRED_CHANNEL
+        value: "@tteam_up"
+
+      - key: AUTOPOST_CHANNEL
+        value: "@tteam_up"
+
+      - key: ADMIN_IDS
+        value: "1777539617"
+
+      - key: DB_PATH
+        value: "/data/teamup.sqlite3"
+
+      - key: WEBAPP_URL
+        sync: false
+
+      - key: PYTHON_VERSION
+        value: "3.13.5"
