@@ -15,6 +15,7 @@ from typing import Literal
 from urllib.parse import parse_qsl
 
 from aiogram import Bot, Dispatcher, Router
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramRetryAfter
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     BotCommand,
@@ -152,6 +153,20 @@ def init_db() -> None:
               created_at INTEGER NOT NULL,
               updated_at INTEGER NOT NULL,
               UNIQUE(reporter_id, target_type, target_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS broadcasts (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              admin_id INTEGER NOT NULL,
+              text TEXT NOT NULL,
+              target_count INTEGER NOT NULL DEFAULT 0,
+              sent_count INTEGER NOT NULL DEFAULT 0,
+              blocked_count INTEGER NOT NULL DEFAULT 0,
+              error_count INTEGER NOT NULL DEFAULT 0,
+              status TEXT NOT NULL DEFAULT 'running'
+                CHECK(status IN ('running','done','failed')),
+              created_at INTEGER NOT NULL,
+              finished_at INTEGER NOT NULL DEFAULT 0
             );
             """
         )
@@ -345,6 +360,11 @@ class ReportIn(BaseModel):
     target_type: ReportTarget
     target_id: int
     reason: str = Field(min_length=3, max_length=500)
+
+
+class BroadcastIn(BaseModel):
+    text: str = Field(min_length=3, max_length=3500)
+    test_only: bool = False
 
 
 # ---------------- bot ----------------
@@ -552,6 +572,106 @@ async def publish_project_to_channel(project_id: int) -> None:
         )
     except Exception as exc:
         print(f"[channel autopost] {exc}")
+
+
+broadcast_lock = asyncio.Lock()
+
+
+async def send_broadcast(*, admin_id: int, text: str, test_only: bool = False) -> dict:
+    if not bot:
+        raise HTTPException(503, "Бот сейчас не подключён")
+
+    clean_text = text.strip()
+    if len(clean_text) < 3:
+        raise HTTPException(400, "Сообщение слишком короткое")
+
+    if broadcast_lock.locked():
+        raise HTTPException(409, "Другая рассылка уже выполняется")
+
+    async with broadcast_lock:
+        with db() as conn:
+            if test_only:
+                targets = [admin_id]
+            else:
+                targets = [
+                    int(row["telegram_id"])
+                    for row in conn.execute(
+                        "SELECT telegram_id FROM users WHERE blocked=0 ORDER BY created_at ASC"
+                    ).fetchall()
+                ]
+
+            now = int(time.time())
+            cur = conn.execute(
+                """
+                INSERT INTO broadcasts
+                  (admin_id,text,target_count,sent_count,blocked_count,error_count,status,created_at,finished_at)
+                VALUES (?,?,?,?,?,?, 'running', ?, 0)
+                """,
+                (admin_id, clean_text, len(targets), 0, 0, 0, now),
+            )
+            broadcast_id = int(cur.lastrowid)
+
+        sent = 0
+        blocked = 0
+        errors = 0
+        keyboard = app_keyboard()
+
+        for user_id in targets:
+            try:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text=clean_text,
+                    reply_markup=keyboard,
+                )
+                sent += 1
+
+            except TelegramForbiddenError:
+                blocked += 1
+
+            except TelegramRetryAfter as exc:
+                await asyncio.sleep(float(exc.retry_after) + 0.25)
+                try:
+                    await bot.send_message(
+                        chat_id=user_id,
+                        text=clean_text,
+                        reply_markup=keyboard,
+                    )
+                    sent += 1
+                except TelegramForbiddenError:
+                    blocked += 1
+                except Exception:
+                    errors += 1
+
+            except TelegramBadRequest:
+                errors += 1
+
+            except Exception as exc:
+                print(f"[broadcast] user={user_id}: {exc}")
+                errors += 1
+
+            # Около 10 сообщений в секунду — спокойно для такой небольшой базы.
+            await asyncio.sleep(0.09)
+
+        finished = int(time.time())
+        with db() as conn:
+            conn.execute(
+                """
+                UPDATE broadcasts
+                SET sent_count=?,blocked_count=?,error_count=?,status='done',finished_at=?
+                WHERE id=?
+                """,
+                (sent, blocked, errors, finished, broadcast_id),
+            )
+
+        return {
+            "ok": True,
+            "id": broadcast_id,
+            "target_count": len(targets),
+            "sent": sent,
+            "blocked": blocked,
+            "errors": errors,
+            "test_only": test_only,
+        }
 
 
 # ---------------- lifecycle ----------------
@@ -1430,6 +1550,38 @@ def decide_report(
             (status, int(time.time()), report_id),
         )
     return {"ok": True, "status": status}
+
+
+@app.post("/api/admin/broadcast")
+async def admin_broadcast(
+    data: BroadcastIn,
+    user: dict = Depends(current_user),
+):
+    admin_id = require_admin(user)
+    return await send_broadcast(
+        admin_id=admin_id,
+        text=data.text,
+        test_only=data.test_only,
+    )
+
+
+@app.get("/api/admin/broadcasts")
+def admin_broadcasts(
+    limit: int = Query(default=5, ge=1, le=20),
+    user: dict = Depends(current_user),
+):
+    require_admin(user)
+    with db() as conn:
+        rows = conn.execute(
+            """
+            SELECT id,text,target_count,sent_count,blocked_count,error_count,status,created_at,finished_at
+            FROM broadcasts
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 @app.post("/api/admin/cleanup-demo")

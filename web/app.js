@@ -353,11 +353,12 @@ async function openDeepLink(){
 
 async function loadAdmin(){
   try{
-    const [stats,reports,projects,users]=await Promise.all([
+    const [stats,reports,projects,users,broadcasts]=await Promise.all([
       api("/api/admin/stats"),
       api("/api/admin/reports?limit=30"),
       api("/api/admin/projects?limit=20"),
       api("/api/admin/users?limit=20"),
+      api("/api/admin/broadcasts?limit=5"),
     ]);
     $("adminStats").innerHTML=`
       <div><span>Пользователи</span><b>${stats.users}</b><small>+${stats.new_users_24h} за 24ч</small></div>
@@ -365,6 +366,17 @@ async function loadAdmin(){
       <div><span>Отклики</span><b>${stats.applications}</b><small>${stats.pending_applications} ждут</small></div>
       <div><span>Приглашения</span><b>${stats.invitations}</b><small>всего</small></div>
       <div><span>Жалобы</span><b>${stats.pending_reports}</b><small>ждут разбора</small></div>`;
+    $("broadcastAudience").textContent=`Получателей: ${stats.users}`;
+    $("broadcastHistory").innerHTML=broadcasts.length?`
+      <div class="broadcast-history-title">Последние рассылки</div>
+      ${broadcasts.map(b=>`
+        <div class="broadcast-history-row">
+          <div class="grow">
+            <b>${b.status==="done"?"✅":"⏳"} ${esc((b.text||"").slice(0,70))}${(b.text||"").length>70?"…":""}</b>
+            <small>Отправлено ${b.sent_count}/${b.target_count} · блоков ${b.blocked_count} · ошибок ${b.error_count}</small>
+          </div>
+        </div>`).join("")}
+    `:"";
     $("adminReports").innerHTML=reports.length?reports.map(r=>`
       <div class="admin-row report-row ${r.status!=="pending"?"muted-row":""}">
         <div class="grow">
@@ -397,6 +409,60 @@ window.decideReport=async(id,status)=>{try{await api(`/api/admin/reports/${id}/d
 $("cleanupDemoBtn")?.addEventListener("click",async()=>{if(!confirm("Удалить только тестовых Артёма, Леру, Мишу и их демо-проекты? Твои реальные данные останутся."))return;try{const r=await api("/api/admin/cleanup-demo",{method:"POST"});toast(`Удалено: ${r.deleted_users} людей, ${r.deleted_projects} проектов`);loadAdmin();loadFeed()}catch(e){toast(e.message,"error")}});
 
 window.adminBlockUser=async(id,blocked)=>{try{await api(`/api/admin/users/${id}/block?blocked=${blocked}`,{method:"POST"});toast(blocked?"Пользователь заблокирован":"Пользователь разблокирован");loadAdmin()}catch(e){toast(e.message,"error")}};
+
+const broadcastText=$("broadcastText");
+broadcastText?.addEventListener("input",()=>{
+  $("broadcastChars").textContent=`${broadcastText.value.length} / 3500`;
+});
+
+async function runBroadcast(testOnly){
+  const text=(broadcastText?.value||"").trim();
+  if(text.length<3){
+    toast("Напиши текст рассылки","error");
+    return;
+  }
+
+  if(!testOnly){
+    const audience=$("broadcastAudience")?.textContent||"получателям";
+    if(!confirm(`Отправить это сообщение? ${audience}.\n\nОтменить уже отправленные сообщения нельзя.`))return;
+  }
+
+  const testBtn=$("broadcastTestBtn");
+  const sendBtn=$("broadcastSendBtn");
+  const resultBox=$("broadcastResult");
+  testBtn.disabled=true;
+  sendBtn.disabled=true;
+  const oldTest=testBtn.textContent;
+  const oldSend=sendBtn.textContent;
+  if(testOnly)testBtn.textContent="Отправляю…";
+  else sendBtn.textContent="Рассылаю…";
+
+  try{
+    const r=await api("/api/admin/broadcast",{
+      method:"POST",
+      body:JSON.stringify({text,test_only:testOnly})
+    });
+    resultBox.classList.remove("hidden");
+    resultBox.innerHTML=`
+      <b>${testOnly?"✅ Тест отправлен":"✅ Рассылка завершена"}</b>
+      <span>Получателей: ${r.target_count} · отправлено: ${r.sent} · блоков: ${r.blocked} · ошибок: ${r.errors}</span>`;
+    toast(testOnly?"Проверь сообщение от бота":"Рассылка завершена");
+    await loadAdmin();
+  }catch(e){
+    resultBox.classList.remove("hidden");
+    resultBox.textContent=`Ошибка: ${e.message}`;
+    toast(e.message,"error");
+  }finally{
+    testBtn.disabled=false;
+    sendBtn.disabled=false;
+    testBtn.textContent=oldTest;
+    sendBtn.textContent=oldSend;
+  }
+}
+
+$("broadcastTestBtn")?.addEventListener("click",()=>runBroadcast(true));
+$("broadcastSendBtn")?.addEventListener("click",()=>runBroadcast(false));
+
 $("adminBtn")?.addEventListener("click",loadAdmin);
 
 async function bootContent(){

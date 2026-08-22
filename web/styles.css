@@ -85,3 +85,61 @@ nav{position:fixed;z-index:10;left:50%;transform:translateX(-50%);bottom:0;width
 .registration-sheet h2{font-size:28px}
 .onboarding-modal{z-index:120;background:rgba(5,8,14,.88);backdrop-filter:blur(12px)}
 .registration-sheet .goal-choices button{min-height:68px}
+
+
+/* v0.10: broadcast from admin */
+.broadcast-box{
+  border:1px solid var(--line);
+  background:var(--panel);
+  border-radius:16px;
+  padding:12px;
+  margin-bottom:16px;
+}
+.broadcast-box textarea{
+  width:100%;
+  resize:vertical;
+  min-height:145px;
+  margin-top:9px;
+}
+.broadcast-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  color:var(--hint);
+  font-size:9px;
+  margin-top:6px;
+}
+.broadcast-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+.broadcast-actions button{width:100%}
+.broadcast-result{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+  margin-top:10px;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  font-size:10px;
+}
+.broadcast-result span{color:var(--hint)}
+.broadcast-history{margin-top:10px}
+.broadcast-history-title{
+  color:var(--hint);
+  font-size:9px;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  margin-bottom:6px;
+}
+.broadcast-history-row{
+  display:flex;
+  padding:8px 0;
+  border-top:1px solid var(--line);
+}
+.broadcast-history-row b{display:block;font-size:10px}
+.broadcast-history-row small{display:block;color:var(--hint);font-size:9px;margin-top:2px}

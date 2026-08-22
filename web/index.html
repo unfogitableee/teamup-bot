@@ -263,6 +263,23 @@
         <button class="icon-btn" data-close="adminModal">×</button>
       </div>
       <div id="adminStats" class="admin-stats"></div>
+
+      <div class="section-title">📣 Рассылка пользователям</div>
+      <div class="broadcast-box">
+        <p class="muted">Сообщение придёт пользователям прямо от бота. Под ним автоматически будет кнопка «🚀 Открыть Тимап».</p>
+        <textarea id="broadcastText" rows="8" maxlength="3500" placeholder="Например: 🚀 Есть свой проект? Размести его в Тимапе..."></textarea>
+        <div class="broadcast-meta">
+          <span id="broadcastChars">0 / 3500</span>
+          <span id="broadcastAudience">Получателей: —</span>
+        </div>
+        <div class="broadcast-actions">
+          <button id="broadcastTestBtn" class="secondary" type="button">Тест себе</button>
+          <button id="broadcastSendBtn" class="primary" type="button">Разослать всем</button>
+        </div>
+        <div id="broadcastResult" class="broadcast-result hidden"></div>
+        <div id="broadcastHistory" class="broadcast-history"></div>
+      </div>
+
       <button id="cleanupDemoBtn" class="secondary wide admin-cleanup" type="button">🧹 Удалить тестовых Артёма, Леру и Мишу</button>
       <div class="section-title">Жалобы</div>
       <div id="adminReports" class="admin-list"></div>
